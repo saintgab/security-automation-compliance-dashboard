@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+data/findings.db
+data/findings_export.csv
+data/evidence/
+baseline/node_modules/
+baseline/*.pdf
+baseline/page-*.jpg
+.DS_Store
+
+mock_data/*.json
