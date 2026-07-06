@@ -16,7 +16,7 @@ flowchart TD
     D --> F[Streamlit Dashboard]
     D --> G[evidence.py]
     G --> H[Hashed evidence artifacts + manifest]
-    H --> I[Compliance Evidence Report]
+    H --> I[Evidence Report]
     B[AWS_Security_Baseline.docx] -.control catalog.-> G
     B -.control catalog.-> C
 ```
