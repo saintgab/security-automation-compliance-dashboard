@@ -6,19 +6,19 @@ against SLA, visualizes the result live, and generates auditor-ready
 compliance evidence from the same data — instead of four disconnected demos.
 
 ```mermaid
-flowchart TD
-    A1[AWS Security Hub] --> C[collect.py]
-    A2[GitHub Code Scanning / Dependabot] --> C
-    A3["Scanner (Tenable-style)"] --> C
-    C --> D[(SQLite: data/findings.db)]
-    D --> E[Risk scoring + SLA logic]
-    E --> D
-    D --> F[Streamlit Dashboard]
-    D --> G[evidence.py]
-    G --> H[Hashed evidence artifacts + manifest]
-    H --> I[Evidence Report]
-    B[AWS_Security_Baseline.docx] -.control catalog.-> G
-    B -.control catalog.-> C
+   flowchart TD
+       A1[AWS Security Hub] --> C[collect.py]
+       A2[GitHub Code Scanning / Dependabot] --> C
+       A3["Scanner (Tenable-style)"] --> C
+       C --> D[(SQLite: data/findings.db)]
+       D --> E[Risk scoring + SLA logic]
+       E --> D
+       D --> F[Streamlit Dashboard]
+       D --> G[evidence.py]
+       G --> H[Hashed evidence artifacts + manifest]
+       H --> I[Evidence Report]
+       B[AWS_Security_Baseline.docx] -.control catalog.-> G
+       B -.control catalog.-> 
 ```
 ## Screenshots
 
