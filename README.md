@@ -18,7 +18,8 @@ compliance evidence from the same data — instead of four disconnected demos.
        G --> H[Hashed evidence artifacts + manifest]
        H --> I[Evidence Report]
        B[AWS_Security_Baseline.docx] -.control catalog.-> G
-       B -.control catalog.-> 
+       B -.control catalog.-> C
+
 ```
 ## Screenshots
 
