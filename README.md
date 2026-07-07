@@ -67,6 +67,7 @@ run on a schedule (cron, GitHub Actions) the same way a real collector would.
 | `compliance/control_catalog.py` | Maps each control to SOC 2 / ISO 27001 references |
 | `AWS_Security_Baseline.docx` | The policy document the pipeline actually enforces |
 | `mock_data/generate_mock_data.py` | Regenerates the 3 mock vendor payloads (seeded) |
+| `jira_export.py` | Exports overdue/due-soon findings as Jira REST API v3 payloads |
 
 ## The risk score isn't just severity
 

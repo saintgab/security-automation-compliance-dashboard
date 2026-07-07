@@ -9,3 +9,4 @@ baseline/page-*.jpg
 .DS_Store
 
 mock_data/*.json
+data/jira_export.json
