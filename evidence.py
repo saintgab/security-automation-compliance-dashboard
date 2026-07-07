@@ -134,6 +134,17 @@ def generate_report_markdown(run_id: str, generated_at: str, control_results: li
     not_observed = sum(1 for c in control_results if c["status"] == "NOT_OBSERVED")
     compliance_pct = 100 * (passed + excepted) / total if total else 0.0
 
+    # Build display symbols from Unicode code points.
+    # This keeps the Python source file ASCII-safe while the generated Markdown is UTF-8.
+    em_dash = chr(0x2014)
+    ellipsis = chr(0x2026)
+    status_icon = {
+        "PASS": chr(0x2705) + " PASS",
+        "PASS_WITH_EXCEPTION": chr(0x1F7E3) + " EXCEPTION",
+        "FAIL": chr(0x1F534) + " FAIL",
+        "NOT_OBSERVED": chr(0x26AA) + " NOT OBSERVED",
+    }
+
     lines = [
         "# Compliance Evidence Report",
         "",
@@ -147,22 +158,26 @@ def generate_report_markdown(run_id: str, generated_at: str, control_results: li
         "| Control | SOC 2 | ISO 27001 | Status | Evidence file | SHA-256 |",
         "|---|---|---|---|---|---|",
     ]
-    status_icon = {"PASS": "âœ… PASS", "PASS_WITH_EXCEPTION": "ðŸŸ£ EXCEPTION", "FAIL": "ðŸ”´ FAIL", "NOT_OBSERVED": "âšª NOT OBSERVED"}
+
     for c in control_results:
+        control_label = f"{c['control_id']} {em_dash} {c['control_name']}"
+        short_hash = f"{c['sha256'][:16]}{ellipsis}"
+
         lines.append(
-            f"| {c['control_id']} â€” {c['control_name']} | {', '.join(c['soc2_criteria'])} | "
-            f"{', '.join(c['iso27001_ref'])} | {status_icon[c['status']]} | `{c['evidence_file']}` | "
-            f"`{c['sha256'][:16]}â€¦` |"
+            f"| {control_label} | {', '.join(c['soc2_criteria'])} | "
+            f"{', '.join(c['iso27001_ref'])} | {status_icon[c['status']]} | "
+            f"`{c['evidence_file']}` | `{short_hash}` |"
         )
 
     lines += ["", "## Auditor notes", ""]
+
     for c in control_results:
-        lines.append(f"**{c['control_id']} â€” {c['control_name']}**  ")
+        control_label = f"{c['control_id']} {em_dash} {c['control_name']}"
+        lines.append(f"**{control_label}**  ")
         lines.append(c["auditor_note"])
         lines.append("")
 
     return "\n".join(lines)
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])

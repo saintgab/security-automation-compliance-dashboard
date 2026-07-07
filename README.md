@@ -20,6 +20,11 @@ flowchart TD
     B[AWS_Security_Baseline.docx] -.control catalog.-> G
     B -.control catalog.-> C
 ```
+## Screenshots
+
+![Dashboard](docs/dashboard.png)
+
+![Compliance evidence report](docs/evidence-report.png)
 
 ## Why this exists
 
