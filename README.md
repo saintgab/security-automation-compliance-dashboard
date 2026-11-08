@@ -192,3 +192,48 @@ For mock evidence:
 For live AWS evidence after collecting findings:
 
     python evidence.py --source live
+
+
+## Project Demonstration
+
+This project demonstrates automated security findings collection, risk prioritization, SLA tracking, and compliance evidence generation.
+
+### Architecture
+
+[View the security architecture diagram](docs/architecture.md)
+
+AWS Security Hub CSPM provides live findings. GitHub Alerts and vulnerability-scanner integrations use synthetic data.
+
+### Dashboard Overview
+
+![Synthetic Security Dashboard — Overview](screenshots/dashboard-overview.png)
+
+*The dashboard screenshot uses synthetic lab data.*
+
+### Risk Prioritization
+
+![Synthetic Security Dashboard — Risk Prioritization](screenshots/risk-prioritization.png)
+
+*Risk scoring, SLA monitoring, severity distribution, and finding ownership using synthetic findings.*
+
+### Compliance Evidence
+
+![Synthetic Compliance Evidence Report](screenshots/compliance-evidence.png)
+
+*Example synthetic evidence report mapping 12 AWS controls to SOC 2 and ISO 27001 references. Exception statuses do not independently verify formal risk acceptance.*
+
+### Verified Live AWS Integration
+
+On November 8, 2026, a live AWS Security Hub collection in `us-east-1` returned 392 findings. All 392 were associated with the latest successful collection run.
+
+The live evidence report evaluated 12 catalog controls:
+
+- 7 PASS
+- 2 FAIL
+- 3 NOT_OBSERVED
+
+These are historical AWS assessment results, not certification or proof of organization-wide compliance.
+
+### Automated Validation
+
+The project includes 38 Python tests and a GitHub Actions workflow that validates pull requests targeting `main`.
