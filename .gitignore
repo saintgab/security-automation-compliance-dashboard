@@ -10,3 +10,8 @@ baseline/page-*.jpg
 
 mock_data/*.json
 data/jira_export.json
+
+# Locally collected AWS Security Hub data
+data/securityhub_live.db
+data/securityhub_live_export.csv
+.venv/
