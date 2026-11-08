@@ -5,27 +5,16 @@ three sources, scores them by actual risk (not just severity), tracks them
 against SLA, visualizes the result live, and generates reviewable
 compliance evidence from the same data — instead of four disconnected demos.
 
-```mermaid
-   flowchart TD
-       A1[AWS Security Hub] --> C[collect.py]
-       A2[GitHub Code Scanning / Dependabot] --> C
-       A3["Scanner (Tenable-style)"] --> C
-       C --> D[(SQLite: data/findings.db)]
-       D --> E[Risk scoring + SLA logic]
-       E --> D
-       D --> F[Streamlit Dashboard]
-       D --> G[evidence.py]
-       G --> H[Hashed evidence artifacts + manifest]
-       H --> I[Evidence Report]
-       B[AWS_Security_Baseline.docx] -.control catalog.-> G
-       B -.control catalog.-> C
+## Architecture
 
-```
-## Screenshots
+The system uses live AWS Security Hub ingestion alongside synthetic
+GitHub and vulnerability-scanner sources. Live and mock findings are
+stored in separate SQLite databases.
 
-![Dashboard](docs/dashboard.png)
+[View the system architecture diagram](docs/architecture.md)
 
-![Compliance evidence report](docs/evidence-report.png)
+The screenshots and example reports are available in the
+[Project Demonstration](#project-demonstration) section.
 
 ## Why this exists
 
@@ -43,10 +32,19 @@ Mock collection uses synthetic findings without AWS credentials. AWS Security Hu
 ```bash
 pip install -r requirements.txt
 
-python collect.py --csv        # pull findings from 3 mock sources → SQLite
+python collect.py --source mock --csv  # synthetic lab findings
 python evidence.py --source mock  # generate synthetic compliance evidence
-streamlit run app.py           # launch the dashboard
+python -m streamlit run app.py  # select mock or live in the sidebar
 ```
+
+For authorized live AWS collection, configure a read-only IAM identity,
+then run:
+
+    python collect.py --source aws-security-hub --aws-profile security-lab --aws-region us-east-1
+    python evidence.py --source live
+
+The commands use separate live and synthetic SQLite databases.
+
 
 Re-run `collect.py` any time — it's idempotent. Findings are upserted by ID,
 so an unchanged finding keeps its original `first_seen` timestamp and its SLA
@@ -237,3 +235,10 @@ These are historical AWS assessment results, not certification or proof of organ
 ### Automated Validation
 
 The project includes 38 Python tests and a GitHub Actions workflow that validates pull requests targeting `main`.
+
+
+### Verified Live AWS Compliance Evidence
+
+![Redacted live AWS Security Hub compliance evidence](screenshots/live-compliance-evidence.png)
+
+*Redacted evidence from an authorized AWS Security Hub collection in us-east-1 on November 8, 2026. The 12-control evaluation recorded 7 PASS, 2 FAIL, and 3 NOT_OBSERVED. Results reflect the recorded AWS assessments, not a formal SOC 2 or ISO 27001 audit.*

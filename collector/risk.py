@@ -82,8 +82,8 @@ def compute_risk_score(
     """
     risk_score = severity_weight x criticality_multiplier x age_multiplier
 
-    age_multiplier grows linearly with how far past the SLA window a finding
-    is, capped at a 3x age multiplier for anything sitting at >=2x its SLA
+    age_multiplier grows from the first-seen date in proportion to the SLA
+    duration, capped at 3x when age reaches at least 2x the SLA
     (a stalled critical doesn't get infinitely scarier, but it does keep
     outranking newly-discovered ones). Terminal findings get age_multiplier
     frozen at 1.0 so closing a finding actually drops it, rather than

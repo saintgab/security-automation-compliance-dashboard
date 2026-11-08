@@ -20,6 +20,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from dashboard_scope import current_live_findings
 
 ROOT = Path(__file__).parent
 MOCK_DB = ROOT / "data" / "findings.db"
@@ -127,6 +128,27 @@ try:
 except (sqlite3.DatabaseError, KeyError) as exc:
     st.error(f"Cannot load the selected database: {exc}")
     st.stop()
+
+if is_live:
+    historical_count = len(findings)
+    findings, scope_warning = current_live_findings(findings, runs)
+
+    st.sidebar.caption(
+        f"Current active findings: {len(findings)} | "
+        f"Stored historical records: {historical_count - len(findings)}"
+    )
+
+    if scope_warning or findings.empty:
+        st.title("Security Automation & Compliance Dashboard")
+        st.warning(
+            "Current AWS security posture is NOT ESTABLISHED. "
+            + (scope_warning or "No active findings were observed in the latest collection.")
+        )
+        st.info(
+            "Historical records are preserved in SQLite, but are "
+            "excluded from current dashboard metrics."
+        )
+        st.stop()
 
 if is_live and findings.empty:
     st.title("Security Automation & Compliance Dashboard")
