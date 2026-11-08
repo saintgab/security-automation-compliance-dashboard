@@ -74,7 +74,7 @@ class SecurityHubSource:
     @staticmethod
     def _parse(item: dict) -> Finding:
         asset = item["Resources"][0]["Id"].rsplit("/", 1)[-1]
-        status_map = {"NEW": "open", "NOTIFIED": "in_progress", "RESOLVED": "resolved", "SUPPRESSED": "accepted_risk"}
+        status_map = {"NEW": "open", "NOTIFIED": "in_progress", "RESOLVED": "resolved", "SUPPRESSED": "suppressed"}
         status = status_map.get(item.get("Workflow", {}).get("Status", "NEW"), "open")
         return Finding(
             finding_id=item["Id"],

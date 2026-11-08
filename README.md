@@ -118,3 +118,68 @@ Run it after `collect.py` and check `data/evidence/latest_report.md`.
 ## Stack
 
 Python · SQLite · Streamlit · Plotly · pandas · docx (document generation)
+
+## Live AWS Security Hub Integration
+
+This project supports two separate data sources:
+
+| Mode | Database | Description |
+|---|---|---|
+| Mock Lab Data | `data/findings.db` | Synthetic security findings |
+| Live AWS Security Hub | `data/securityhub_live.db` | Findings collected from AWS |
+
+### Architecture
+
+AWS Security Hub CSPM → Boto3 GetFindings API → Finding normalization → Risk scoring and SLA tracking → SQLite → Streamlit dashboard.
+
+### Requirements
+
+- Python 3.12 or later, using a supported version
+- AWS CLI v2
+- Boto3 with AWS CRT support
+- AWS Security Hub CSPM enabled in the selected Region
+- An authorized IAM identity with `securityhub:GetFindings`
+
+### Authentication
+
+Use a dedicated IAM identity with least-privilege permissions.
+
+    aws login --profile security-lab --region us-east-1
+    aws sts get-caller-identity --profile security-lab
+
+The profile name is illustrative.
+
+### Live AWS collection
+
+    python collect.py --source aws-security-hub --aws-profile security-lab --aws-region us-east-1 --csv
+
+### Mock collection
+
+    python mock_data/generate_mock_data.py
+    python collect.py --source mock --csv
+
+### Launch dashboard
+
+    python -m streamlit run app.py --server.address 127.0.0.1 --server.port 8502
+
+Use the sidebar selector to switch between synthetic and live findings.
+
+### Security controls
+
+- Live and mock findings use separate SQLite databases.
+- Failed AWS requests do not silently fall back to synthetic findings.
+- Successful collection runs are recorded for auditability.
+- AWS credentials, live SQLite data, and CSV exports are excluded from Git.
+- Suppressed findings are not automatically considered accepted risk.
+- The dashboard's SLA calculation is an internal metric, not an AWS certification.
+- An empty findings response does not establish compliance.
+
+### Validation
+
+The live collection pipeline was validated against an authorized AWS Security Hub CSPM deployment in us-east-1. At the time of validation, the dashboard displayed 35 genuine AWS findings.
+
+Automated tests use synthetic AWS API responses and temporary databases. They cover pagination, API errors, finding normalization, workflow statuses, SLA calculations, risk scoring, and database isolation.
+
+The GitHub Alerts and vulnerability-scanner adapters remain mock-only. Cross-Region aggregation, production scheduling, and formal risk-acceptance approval verification are not implemented.
+
+AWS Security Hub CSPM and AWS Config can incur charges. Review AWS Budgets and disable unused services after testing.
