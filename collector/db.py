@@ -42,7 +42,12 @@ CREATE TABLE IF NOT EXISTS findings (
     risk_score          REAL NOT NULL,
     description         TEXT,
     first_ingested_at   TEXT NOT NULL,
-    last_updated_at     TEXT NOT NULL
+    last_updated_at     TEXT NOT NULL,
+    control_id          TEXT,
+    compliance_status   TEXT,
+    record_state        TEXT,
+    product_arn         TEXT,
+    last_observed_at    TEXT
 );
 
 CREATE TABLE IF NOT EXISTS collector_runs (
@@ -67,10 +72,26 @@ def connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
+    existing = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(findings)")
+    }
+    for column in (
+        "control_id",
+        "compliance_status",
+        "record_state",
+        "product_arn",
+        "last_observed_at",
+        "last_seen_run_id",
+        "last_seen_in_collection_at",
+    ):
+        if column not in existing:
+            conn.execute(f"ALTER TABLE findings ADD COLUMN {column} TEXT")
+    conn.commit()
     return conn
 
 
-def upsert_findings(conn: sqlite3.Connection, findings: list[Finding]) -> tuple[int, int]:
+def upsert_findings(conn: sqlite3.Connection, findings: list[Finding], *, commit: bool = True) -> tuple[int, int]:
     """
     Insert new findings, update existing ones -- but preserve the original
     first_seen/first_ingested_at on updates, since re-running the collector
@@ -101,8 +122,10 @@ def upsert_findings(conn: sqlite3.Connection, findings: list[Finding]) -> tuple[
                 finding_id, source, asset, title, severity, cvss_score, cve_ids,
                 status, owner, asset_criticality, first_seen, last_seen,
                 sla_due_date, sla_status, risk_score, description,
-                first_ingested_at, last_updated_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                first_ingested_at, last_updated_at,
+                control_id, compliance_status, record_state,
+                product_arn, last_observed_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(finding_id) DO UPDATE SET
                 source=excluded.source, asset=excluded.asset, title=excluded.title,
                 severity=excluded.severity, cvss_score=excluded.cvss_score,
@@ -110,13 +133,20 @@ def upsert_findings(conn: sqlite3.Connection, findings: list[Finding]) -> tuple[
                 asset_criticality=excluded.asset_criticality, last_seen=excluded.last_seen,
                 sla_due_date=excluded.sla_due_date, sla_status=excluded.sla_status,
                 risk_score=excluded.risk_score, description=excluded.description,
-                last_updated_at=excluded.last_updated_at
+                last_updated_at=excluded.last_updated_at,
+                control_id=excluded.control_id,
+                compliance_status=excluded.compliance_status,
+                record_state=excluded.record_state,
+                product_arn=excluded.product_arn,
+                last_observed_at=excluded.last_observed_at
             """,
             (
                 f.finding_id, f.source, f.asset, f.title, f.severity, f.cvss_score,
                 ";".join(f.cve_ids), f.status, f.owner, f.asset_criticality,
                 first_seen, f.last_seen, due, status, score, f.description,
                 first_ingested_at, now,
+                f.control_id, f.compliance_status, f.record_state,
+                f.product_arn, f.last_observed_at,
             ),
         )
         if existing:
@@ -124,8 +154,34 @@ def upsert_findings(conn: sqlite3.Connection, findings: list[Finding]) -> tuple[
         else:
             new_count += 1
 
-    conn.commit()
+    if commit:
+        conn.commit()
     return new_count, updated_count
+
+
+
+def record_collection_observations(
+    conn: sqlite3.Connection,
+    findings: list[Finding],
+    run_id: str,
+    observed_at: str,
+) -> None:
+    """Tag findings returned by a successful collection.
+
+    Findings absent from the collection retain their previous metadata.
+    This function deliberately does not resolve or delete missing findings.
+    The caller owns the transaction.
+    """
+    conn.executemany(
+        """UPDATE findings
+           SET last_seen_run_id = ?,
+               last_seen_in_collection_at = ?
+           WHERE finding_id = ? AND source = ?""",
+        [
+            (run_id, observed_at, finding.finding_id, finding.source)
+            for finding in findings
+        ],
+    )
 
 
 def record_run(
@@ -136,6 +192,7 @@ def record_run(
     new: int,
     updated: int,
     notes: str = "",
+    *, commit: bool = True,
 ) -> str:
     run_id = str(uuid.uuid4())
     conn.execute(
@@ -145,5 +202,6 @@ def record_run(
            VALUES (?,?,?,?,?,?,?,?)""",
         (run_id, started_at, utc_now_iso(), ",".join(sources_pulled), total, new, updated, notes),
     )
-    conn.commit()
+    if commit:
+        conn.commit()
     return run_id

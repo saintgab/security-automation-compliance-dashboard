@@ -26,7 +26,7 @@ import logging
 import sqlite3
 from pathlib import Path
 
-from collector.db import connect, record_run, upsert_findings
+from collector.db import connect, record_run, upsert_findings, record_collection_observations
 from collector.models import utc_now_iso
 from collector.sources import all_sources, SecurityHubSource
 
@@ -137,17 +137,28 @@ def main() -> int:
 
     conn = connect(db_path)
     try:
-        new_count, updated_count = upsert_findings(conn, all_findings)
+        with conn:
+            new_count, updated_count = upsert_findings(
+                conn, all_findings, commit=False
+            )
 
-        run_id = record_run(
-            conn,
-            started_at=started_at,
-            sources_pulled=[s.name for s in sources],
-            total=len(all_findings),
-            new=new_count,
-            updated=updated_count,
-            notes=f"{args.source} collection run",
-        )
+            run_id = record_run(
+                conn,
+                started_at=started_at,
+                sources_pulled=[s.name for s in sources],
+                total=len(all_findings),
+                new=new_count,
+                updated=updated_count,
+                notes=f"{args.source} collection run",
+                commit=False,
+            )
+
+            record_collection_observations(
+                conn,
+                all_findings,
+                run_id,
+                utc_now_iso(),
+            )
 
         log.info(
             "Run %s complete: %d findings pulled (%d new, %d updated)",
