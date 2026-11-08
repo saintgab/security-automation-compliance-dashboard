@@ -1,5 +1,7 @@
 # Security Automation & Compliance Dashboard
 
+**[▶ Project Demo — Voice Narration + Captions](https://github.com/saintgab/security-automation-compliance-dashboard/releases/tag/v1.0.0)**
+
 A single pipeline that pulls vulnerability and misconfiguration findings from
 three sources, scores them by actual risk (not just severity), tracks them
 against SLA, visualizes the result live, and generates reviewable
