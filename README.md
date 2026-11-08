@@ -1,6 +1,6 @@
 # Security Automation & Compliance Dashboard
 
-**[▶ Project Demo — Voice Narration + Captions](https://github.com/saintgab/security-automation-compliance-dashboard/releases/tag/v1.0.0)**
+**[Watch Project Demo — Narrated and Captioned](https://github.com/saintgab/security-automation-compliance-dashboard/releases/tag/v1.0.0)**
 
 A single pipeline that pulls vulnerability and misconfiguration findings from
 three sources, scores them by actual risk (not just severity), tracks them
@@ -236,7 +236,7 @@ These are historical AWS assessment results, not certification or proof of organ
 
 ### Automated Validation
 
-The project includes 38 Python tests and a GitHub Actions workflow that validates pull requests targeting `main`.
+The project includes 42 Python tests and a GitHub Actions workflow that validates pull requests targeting `main`.
 
 
 ### Verified Live AWS Compliance Evidence
