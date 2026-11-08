@@ -1,26 +1,17 @@
 #!/usr/bin/env python3
 """
-evidence.py -- compliance evidence automation (the "Drata-style" step).
+Compliance evidence generation for synthetic and live AWS Security Hub data.
 
-    data/findings.db  â”€â”€â–º  evaluate each catalog control  â”€â”€â–º  hashed evidence
-    (same DB the           against matching AWS Security      artifacts + manifest
-     dashboard reads)      Hub findings                       + human-readable report
+Mock mode evaluates synthetic findings from data/findings.db.
+Live mode evaluates AWS control assessment statuses using
+data/securityhub_live.db, scoped to the latest recorded collection.
 
-This does NOT re-scan AWS. It re-uses whatever the collector already pulled
-into data/findings.db -- the point of automating evidence collection is that
-you don't run a separate manual process to prove a control is met; you prove
-it from the same system of record the dashboard uses.
-
-Each control gets:
-  - a JSON evidence export (raw matching findings, exactly as ingested)
-  - a status: PASS / PASS_WITH_EXCEPTION / FAIL / NOT_OBSERVED
-  - a SHA-256 hash of that export, so the manifest can prove the evidence
-    file wasn't edited after the fact -- the same property a real evidence
-    tool needs for an evidence file to be auditable rather than just a log.
+SHA-256 manifests support integrity comparison. They cannot independently
+prove authenticity or prevent replacement of both evidence and manifest.
 
 Usage:
-    python collect.py          # populate the database first
-    python evidence.py         # generate an evidence snapshot from it
+    python evidence.py --source mock
+    python evidence.py --source live
 """
 
 from __future__ import annotations
