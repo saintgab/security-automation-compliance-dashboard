@@ -13,7 +13,7 @@ flowchart TD
     EVIDENCE --> CATALOG["12-Control Catalog - SOC 2 / ISO 27001"]
     EVIDENCE --> FRESH["Latest Collection and 24h Freshness"]
     FRESH --> REPORT["Markdown Evidence Report and SHA-256 Manifest"]
-    CI["GitHub Actions - 38 Automated Tests"] -.-> NORMAL
+    CI["GitHub Actions - 42 Automated Tests"] -.-> NORMAL
     CI -.-> EVIDENCE
 ```
 

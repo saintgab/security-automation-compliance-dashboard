@@ -62,7 +62,8 @@ run on a schedule (cron, GitHub Actions) the same way a real collector would.
 | `collector/sources.py` | One adapter per source (AWS Security Hub, GitHub, scanner) |
 | `collector/risk.py` | SLA policy + risk score formula (documented, not a black box) |
 | `collector/db.py` | Schema, idempotent upsert, collector-run audit trail |
-| `app.py` | Streamlit dashboard, reads live from `data/findings.db` |
+| `app.py` | Streamlit dashboard with separate live AWS and synthetic data modes |
+| `dashboard_scope.py` | Filters current ACTIVE AWS findings by latest collection and 24-hour freshness |
 | `evidence.py` | Compliance evidence automation — the Drata-style step |
 | `compliance/control_catalog.py` | Maps each control to SOC 2 / ISO 27001 references |
 | `AWS_Security_Baseline.docx` | The policy document the pipeline actually enforces |
