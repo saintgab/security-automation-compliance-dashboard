@@ -15,3 +15,4 @@ data/jira_export.json
 data/securityhub_live.db
 data/securityhub_live_export.csv
 .venv/
+data/securityhub_live_backup_*.db

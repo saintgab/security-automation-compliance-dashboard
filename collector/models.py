@@ -77,3 +77,8 @@ class Finding:
     first_seen: str = ""
     last_seen: str = ""
     description: str = ""
+    control_id: str | None = None
+    compliance_status: str | None = None
+    record_state: str | None = None
+    product_arn: str | None = None
+    last_observed_at: str | None = None

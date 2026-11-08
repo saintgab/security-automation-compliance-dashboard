@@ -96,6 +96,11 @@ class SecurityHubSource:
             first_seen=item["CreatedAt"],
             last_seen=item["UpdatedAt"],
             description=item.get("Description", ""),
+            control_id=(item.get("Compliance") or {}).get("SecurityControlId"),
+            compliance_status=(item.get("Compliance") or {}).get("Status"),
+            record_state=item.get("RecordState"),
+            product_arn=item.get("ProductArn"),
+            last_observed_at=item.get("LastObservedAt"),
         )
 
 

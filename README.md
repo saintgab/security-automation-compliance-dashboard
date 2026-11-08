@@ -107,13 +107,13 @@ Run it after `collect.py` and check `data/evidence/latest_report.md`.
 
 ## Honest limitations
 
-- Mock mode only. `_fetch_live()` in each source adapter is intentionally
-  unimplemented — this is a portfolio build, not a production integration.
-  Wiring a real AWS account is additive, not a rewrite.
-- Ownership assignment is a keyword heuristic (see `collector/sources.py`),
-  standing in for a real CMDB/asset-tag lookup.
-- The risk-scoring constants encode one reasonable policy, not a universal
-  standard — they're deliberately easy to find and change in one file.
+- AWS Security Hub CSPM ingestion is live. GitHub Alerts and vulnerability scanner integrations remain synthetic.
+- Live evidence uses Security Hub control IDs, AWS compliance statuses, and a 24-hour collection freshness check.
+- Findings absent from a later collection remain in historical storage; disappearance is not proof of remediation.
+- A Security Hub PASSED assessment does not independently establish SOC 2 or ISO 27001 compliance.
+- The SHA-256 evidence manifest supports file-integrity comparison but is not independently signed or tamper-proof.
+- SUPPRESSED findings remain subject to risk aging and SLA tracking; suppression does not constitute approved risk acceptance.
+
 
 ## Stack
 
@@ -176,10 +176,26 @@ Use the sidebar selector to switch between synthetic and live findings.
 
 ### Validation
 
-The live collection pipeline was validated against an authorized AWS Security Hub CSPM deployment in us-east-1. At the time of validation, the dashboard displayed 35 genuine AWS findings.
+On November 8, 2026, a validated live AWS Security Hub collection in us-east-1 returned 392 findings; all 392 were tagged to the same collection run. The 12-control evidence report returned 7 PASS, 2 FAIL, and 3 NOT_OBSERVED. These are historical validation results.
 
 Automated tests use synthetic AWS API responses and temporary databases. They cover pagination, API errors, finding normalization, workflow statuses, SLA calculations, risk scoring, and database isolation.
 
 The GitHub Alerts and vulnerability-scanner adapters remain mock-only. Cross-Region aggregation, production scheduling, and formal risk-acceptance approval verification are not implemented.
 
 AWS Security Hub CSPM and AWS Config can incur charges. Review AWS Budgets and disable unused services after testing.
+
+## Continuous Integration
+
+GitHub Actions runs the Python unit tests on pull requests targeting `main` and pushes to `main`.
+
+Run locally:
+
+    python -m unittest discover -s tests -q
+
+For mock evidence:
+
+    python evidence.py --source mock
+
+For live AWS evidence after collecting findings:
+
+    python evidence.py --source live
