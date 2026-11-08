@@ -2,7 +2,7 @@
 
 A single pipeline that pulls vulnerability and misconfiguration findings from
 three sources, scores them by actual risk (not just severity), tracks them
-against SLA, visualizes the result live, and generates auditor-ready
+against SLA, visualizes the result live, and generates reviewable
 compliance evidence from the same data — instead of four disconnected demos.
 
 ```mermaid
@@ -36,13 +36,7 @@ a remediation SLA in one place ([`collector/risk.py`](collector/risk.py)) and
 the baseline document, the dashboard, and the evidence report are all
 describing the same policy, not three independently-maintained ones.
 
-Every source runs in mock mode by default, using data shaped exactly like the
-real vendor payload (AWS Security Hub ASFF, GitHub code-scanning alert JSON,
-a Tenable-style scanner export), so the whole thing runs with zero credentials
-and zero cloud spend. Swapping in a live AWS account is a matter of
-implementing the three `_fetch_live()` stubs in
-[`collector/sources.py`](collector/sources.py) — the parsing, risk scoring,
-storage, dashboard, and evidence logic don't change.
+Mock collection uses synthetic findings without AWS credentials. AWS Security Hub supports live ingestion through a dedicated IAM identity. GitHub Alerts and vulnerability scanner integrations remain synthetic. Live and mock findings are stored separately.
 
 ## Quickstart
 
@@ -50,7 +44,7 @@ storage, dashboard, and evidence logic don't change.
 pip install -r requirements.txt
 
 python collect.py --csv        # pull findings from 3 mock sources → SQLite
-python evidence.py             # generate compliance evidence from that data
+python evidence.py --source mock  # generate synthetic compliance evidence
 streamlit run app.py           # launch the dashboard
 ```
 
@@ -96,14 +90,13 @@ dashboard reads, against a control catalog mapped to SOC 2 and ISO 27001, and
 writes:
 
 - one JSON evidence export per control (the raw matching findings)
-- a SHA-256 hash of that export in the manifest, so tampering after the fact
-  is detectable
-- a status per control: `PASS`, `PASS_WITH_EXCEPTION` (documented risk
-  acceptance), `FAIL`, or `NOT_OBSERVED` (the control never triggered a
+- a SHA-256 hash in the manifest for integrity comparison; the manifest
+  itself is not independently signed or tamper-proof
+- a status per control: `PASS`, `PASS_WITH_EXCEPTION` (mock exception status, not independently verified approval), `FAIL`, or `NOT_OBSERVED` (the control never triggered a
   finding — which is *not* the same as passing, and the report says so)
 - a human-readable `Compliance_Evidence_Report.md` an auditor could actually read
 
-Run it after `collect.py` and check `data/evidence/latest_report.md`.
+Run `python evidence.py --source mock` or `python evidence.py --source live` after collection. Reports are stored separately by evidence mode.
 
 ## Honest limitations
 
