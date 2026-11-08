@@ -56,15 +56,20 @@ class SecurityHubSource:
         path = MOCK_DATA_DIR / "security_hub_findings.json"
         return json.loads(path.read_text())
 
-    def _fetch_live(self) -> list[dict]:  # pragma: no cover
-        """
-        Real implementation would page through:
-            self.live_client.get_findings(Filters={...}, MaxResults=100)
-        following NextToken until absent. Left unimplemented here since this
-        portfolio build runs in mock mode -- wiring a real AWS account is a
-        follow-up, not a rewrite (parsing logic in _parse is unaffected).
-        """
-        raise NotImplementedError("Live AWS Security Hub pull not wired up in this build")
+    def _fetch_live(self) -> list[dict]:
+        """Fetch all available AWS Security Hub ASFF findings."""
+        if self.live_client is None:
+            raise RuntimeError("AWS Security Hub live client is not configured")
+
+        paginator = self.live_client.get_paginator("get_findings")
+        findings = []
+
+        for page in paginator.paginate(
+            PaginationConfig={"PageSize": 100}
+        ):
+            findings.extend(page["Findings"])
+
+        return findings
 
     @staticmethod
     def _parse(item: dict) -> Finding:

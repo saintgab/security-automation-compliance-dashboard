@@ -28,7 +28,7 @@ from pathlib import Path
 
 from collector.db import connect, record_run, upsert_findings
 from collector.models import utc_now_iso
-from collector.sources import all_sources
+from collector.sources import all_sources, SecurityHubSource
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s %(message)s")
 log = logging.getLogger("collect")
@@ -75,41 +75,97 @@ def print_summary(conn: sqlite3.Connection) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--db", type=Path, default=DEFAULT_DB)
-    parser.add_argument("--csv", action="store_true", help="Also export data/findings_export.csv")
+    parser = argparse.ArgumentParser(description=__doc__.split("\\n\\n")[0])
+    parser.add_argument("--db", type=Path, default=None)
+    parser.add_argument("--csv", action="store_true",
+                        help="Export findings to CSV")
+    parser.add_argument(
+        "--source", choices=["mock", "aws-security-hub"],
+        default="mock"
+    )
+    parser.add_argument("--aws-profile")
+    parser.add_argument("--aws-region")
+
     args = parser.parse_args()
 
-    started_at = utc_now_iso()
-    conn = connect(args.db)
+    if args.source == "aws-security-hub":
+        if not args.aws_region:
+            parser.error("--aws-region is required for live collection")
 
-    sources = all_sources()
+        import boto3
+        from botocore.config import Config
+
+        session_options = {"region_name": args.aws_region}
+        if args.aws_profile:
+            session_options["profile_name"] = args.aws_profile
+
+        session = boto3.Session(**session_options)
+        client = session.client(
+            "securityhub",
+            config=Config(
+                retries={"mode": "standard", "max_attempts": 5},
+                connect_timeout=5,
+                read_timeout=30,
+            ),
+        )
+
+        sources = [SecurityHubSource(live_client=client)]
+        default_db = ROOT / "data/securityhub_live.db"
+    else:
+        if args.aws_profile or args.aws_region:
+            parser.error("AWS options require --source aws-security-hub")
+
+        sources = all_sources()
+        default_db = DEFAULT_DB
+
+    db_path = args.db if args.db is not None else default_db
+
+    if args.source == "aws-security-hub" and args.db is not None:
+        parser.error(
+            "Custom --db paths are not supported in live mode; "
+            "live findings use data/securityhub_live.db"
+        )
+
+    started_at = utc_now_iso()
     all_findings = []
+
+    # Retrieve all sources before creating a successful collection record.
     for source in sources:
         pulled = source.pull()
         log.info("Pulled %d findings from %s", len(pulled), source.name)
         all_findings.extend(pulled)
 
-    new_count, updated_count = upsert_findings(conn, all_findings)
-    run_id = record_run(
-        conn,
-        started_at=started_at,
-        sources_pulled=[s.name for s in sources],
-        total=len(all_findings),
-        new=new_count,
-        updated=updated_count,
-        notes="mock-mode collection run",
-    )
-    log.info(
-        "Run %s complete: %d findings pulled (%d new, %d updated)",
-        run_id, len(all_findings), new_count, updated_count,
-    )
+    conn = connect(db_path)
+    try:
+        new_count, updated_count = upsert_findings(conn, all_findings)
 
-    if args.csv:
-        export_csv(conn, ROOT / "data" / "findings_export.csv")
+        run_id = record_run(
+            conn,
+            started_at=started_at,
+            sources_pulled=[s.name for s in sources],
+            total=len(all_findings),
+            new=new_count,
+            updated=updated_count,
+            notes=f"{args.source} collection run",
+        )
 
-    print_summary(conn)
-    conn.close()
+        log.info(
+            "Run %s complete: %d findings pulled (%d new, %d updated)",
+            run_id, len(all_findings), new_count, updated_count,
+        )
+
+        if args.csv:
+            export_path = (
+                ROOT / "data/securityhub_live_export.csv"
+                if args.source == "aws-security-hub"
+                else ROOT / "data/findings_export.csv"
+            )
+            export_csv(conn, export_path)
+
+        print_summary(conn)
+    finally:
+        conn.close()
+
     return 0
 
 

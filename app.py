@@ -22,7 +22,14 @@ import plotly.graph_objects as go
 import streamlit as st
 
 ROOT = Path(__file__).parent
-DB_PATH = ROOT / "data" / "findings.db"
+MOCK_DB = ROOT / "data" / "findings.db"
+LIVE_DB = ROOT / "data" / "securityhub_live.db"
+
+DATA_SOURCES = {
+    "Mock Lab Data (Synthetic)": MOCK_DB,
+    "Live AWS Security Hub": LIVE_DB,
+}
+
 
 SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"]
 SEVERITY_COLOR = {
@@ -95,6 +102,19 @@ def load_data(db_path: str, _mtime: float) -> tuple[pd.DataFrame, pd.DataFrame]:
     return findings, runs
 
 
+st.sidebar.header("Data source")
+selected_data_source = st.sidebar.selectbox(
+    "Select findings database",
+    options=list(DATA_SOURCES),
+    index=0,
+)
+DB_PATH = DATA_SOURCES[selected_data_source]
+is_live = selected_data_source == "Live AWS Security Hub"
+
+st.sidebar.caption(
+    "LIVE AWS DATA" if is_live else "SYNTHETIC LAB DATA"
+)
+
 if not DB_PATH.exists():
     st.error(
         f"No database found at `{DB_PATH}`. Run `python collect.py` first to populate it "
@@ -102,7 +122,27 @@ if not DB_PATH.exists():
     )
     st.stop()
 
-findings, runs = load_data(str(DB_PATH), DB_PATH.stat().st_mtime)
+try:
+    findings, runs = load_data(str(DB_PATH), DB_PATH.stat().st_mtime)
+except (sqlite3.DatabaseError, KeyError) as exc:
+    st.error(f"Cannot load the selected database: {exc}")
+    st.stop()
+
+if is_live and findings.empty:
+    st.title("Security Automation & Compliance Dashboard")
+    st.info(
+        "Live AWS Security Hub connection succeeded, but no findings "
+        "have been ingested yet. This is not a compliance pass."
+    )
+    st.caption(
+        "Last collection: "
+        + (
+            str(runs.iloc[0]["finished_at"])
+            if not runs.empty else "No successful runs"
+        )
+    )
+    st.stop()
+
 
 # ---------------------------------------------------------------------------
 # Header
@@ -110,7 +150,15 @@ findings, runs = load_data(str(DB_PATH), DB_PATH.stat().st_mtime)
 left, right = st.columns([3, 1])
 with left:
     st.title("🛡️ Security Automation & Compliance Dashboard")
-    st.caption("AWS Security Hub · GitHub Alerts · Scanner findings — normalized, risk-scored, SLA-tracked")
+    st.caption(
+        "Live AWS Security Hub findings — read-only collection"
+        if is_live
+        else "Synthetic AWS Security Hub · GitHub Alerts · Scanner findings"
+    )
+    if is_live:
+        st.info("LIVE AWS DATA — collected from AWS Security Hub in us-east-1.")
+    else:
+        st.warning("SYNTHETIC LAB DATA — not evidence of real cloud security posture.")
 with right:
     if not runs.empty:
         last_run = runs.iloc[0]
@@ -342,7 +390,7 @@ with st.expander("Collector run history (audit trail)"):
 st.markdown(
     "<div class='pipeline-caption'>"
     "AWS Security Hub / GitHub Alerts / Scanner &nbsp;→&nbsp; collect.py &nbsp;→&nbsp; "
-    "SQLite (data/findings.db) &nbsp;→&nbsp; risk scoring + SLA logic &nbsp;→&nbsp; this dashboard "
+    f"SQLite ({DB_PATH.name}) &nbsp;→&nbsp; risk scoring + SLA logic &nbsp;→&nbsp; this dashboard "
     "&nbsp;→&nbsp; evidence report"
     "</div>",
     unsafe_allow_html=True,
